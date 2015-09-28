@@ -6,7 +6,7 @@ Common js code
 
 Useful functions for name-value objects.
 
-### Object.prototype.serialize()
+`Object.prototype.serialize()`
 
 Converts an object into a url encoded string.
 
@@ -14,15 +14,15 @@ Converts an object into a url encoded string.
 
 Useful function transformations.
 
-### Function.prototype.curry(...args)
+`Function.prototype.curry(...args)`
 
 Curry in a hurry.
 
-### Function.prototype.debounce(wait, immediate)
+`Function.prototype.debounce(wait, immediate)`
 
 Underscore.js debounce.
 
-### Function.prototype.throttle(wait, options)
+`Function.prototype.throttle(wait, options)`
 
 Underscore.js throttle.
 
@@ -30,7 +30,7 @@ Underscore.js throttle.
 
 DOM related properties and functions.
 
-### HTMLElement.prototype.positionTop()
+`HTMLElement.prototype.positionTop()`
 
 Returns the top position of an element relative to the document.
 
@@ -38,11 +38,11 @@ Returns the top position of an element relative to the document.
 
 Animations
 
-### FX.animate(easeFn, initialValue, valueChange, duration, onTick)
+`FX.animate(easeFn, initialValue, valueChange, duration, onTick)`
 
 General purpose animation function. Returns a function that when called, stops the animation.
 
-### Easing functions. i.e. function(timeElapsed, initialValue, valueChange, duration)
+`Easing functions. i.e. function(timeElapsed, initialValue, valueChange, duration)`
 
 Normally these functions should not be called directly, but passed to FX.animate as the first argument.
 
@@ -52,6 +52,6 @@ Available easing functions: FX.linear, FX.cubicEaseOut.
 
 Random stuff that rarely proves useful.
 
-### injectJS(src, cb)
+`injectJS(src, cb)`
 
 Insert a js file into the document.
