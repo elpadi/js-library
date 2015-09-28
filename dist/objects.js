@@ -1,0 +1,12 @@
+"use strict";
+
+Object.defineProperty(Object.prototype, 'serialize', {
+	value: function value() {
+		var obj = this;
+		var str = [];
+		for (var p in obj) if (obj.hasOwnProperty(p)) {
+			str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+		}
+		return str.join("&");
+	}
+});
