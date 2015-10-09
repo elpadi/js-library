@@ -62,3 +62,34 @@ Object.defineProperty(Function.prototype, 'throttle', {
 	}
 });
 
+Object.defineProperty(Function.prototype, 'once', {
+	value: function() {
+		var func = this, ran = false;
+		return function(...args) {
+			var val = ran ? undefined : func.apply(this, args);
+			ran = true;
+			return val;
+		};
+	}
+});
+
+Object.defineProperty(Function.prototype, 'delay', {
+	value: function(wait) {
+		var func = this;
+		return function(...args) {
+			return setTimeout(function() {
+				func.apply(this, args);
+			}, wait);
+		};
+	}
+});
+
+Object.defineProperty(Function.prototype, 'delayedCall', {
+	value: function(wait, ...args) {
+		var func = this;
+		return setTimeout(function() {
+			func.apply(this, args);
+		}, wait);
+	}
+});
+
