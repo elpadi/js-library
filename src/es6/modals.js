@@ -3,127 +3,143 @@ class Modals {
 	constructor() {
 		this.modals = {};
 		this.currentModal = '';
+		this.prevModal = '';
+		this.scrollY = 0;
 	}
 
 	init() {
 	}
 
-	basicModal(id, contentElement) {
-		var callbacks = {};
-		if (!(id in this.modals)) {
-			callbacks.afterCreate = function(m) {
-				document.getElementById(id + '-modal').appendChild(contentElement);
-			};
+	removePrevious() {
+		if (this.prevModal !== '' && this.currentModal !== this.prevModal) {
+			console.log('remove previous modal', this.prevModal, this.currentModal);
+			this.modals[this.prevModal].m.close();
 		}
-		this.modal(id, callbacks);
 	}
 
-	removeCurrent() {
-		this.modals[this.currentModal].close();
-	}
-
-	modal(id, getModalInfo) {
+	modal(id, ModalClassFn) {
+		if (!ModalClassFn) ModalClassFn = Modal;
+		this.prevModal = this.currentModal;
+		this.currentModal = id;
+		console.log('modal show', this.currentModal, this.prevModal);
 		if (id in this.modals) {
-			this.modals[id].show();
+			this.modals[id].m.show();
 		}
 		else {
-			var info = getModalInfo();
-			var h = Math.round((App.instance.vh - App.instance.FIXED_HEADER_HEIGHT) * (('height' in info) ? info.height : 1));
-			var modal = picoModal({
-				content: '<div id="' + id + '-modal" class="modal"></div>',
-				closeButton: 'closeButton' in info ? info.closeButton : false,
-				width: App.instance.vw,
-				overlayStyles: {
-					opacity: 'overlayOpacity' in info ? info.overlayOpacity : '0.8',
-					backgroundColor: 'white'
-				},
-				modalStyles: {
-					height: h + 'px',
-					top: (App.instance.FIXED_HEADER_HEIGHT + Math.round((App.instance.vh - App.instance.FIXED_HEADER_HEIGHT - h) / 2)) + 'px'
-				}
-			});
-			this.modals[id] = modal;
-			modal.afterCreate(function(m) {
-				var container = document.getElementById('page');
-				modal.modalElem().setAttribute('data-current','true');
-				page.appendChild(m.overlayElem());
-				page.appendChild(m.modalElem());
-				if ('afterCreate' in info) info.afterCreate(m);
-			});
-			if ('afterClose' in info) modal.afterClose(info.afterClose);
-			modal.beforeClose(function(m, e) {
-				var overlay = m.overlayElem();
-				var onTransitionEnd = function onTransitionEnd() { m.forceClose(); overlay.removeEventListener('transitionend', onTransitionEnd); };
-				m.modalElem().classList.remove('visible');
-				overlay.classList.remove('visible');
-				overlay.addEventListener('transitionend', onTransitionEnd);
-				e.preventDefault();
-				if ('beforeClose' in info) info.beforeClose(m);
-			});
-			modal.afterShow(m => {
-				(function() { m.overlayElem().classList.add('visible'); }).delayedCall(16);
-				(function() {
-					if (this.currentModal !== '' && this.currentModal !== id) this.removeCurrent();
-					this.currentModal = id;
-					if ('showContent' in info) info.showContent(m);
-					else m.modalElem().classList.add('visible');
-				}).bind(this).delayedCall(32);
-			});
-			modal.show();
+			this.modals[id] = new ModalClassFn(id);
+			this.modals[id].init();
+			this.modals[id].m.show();
 		}
+	}
+
+	hide(id) {
+		this.modals[id].m.close();
+		if (this.currentModal === id) {
+			App.instance.resetScrollBar();
+			this.currentModal = '';
+		}
+		if (this.prevModal === id) this.prevModal = '';
 	}
 
 }
 
-class AjaxModal {
+class Modal {
 
-	constructor(trigger) {
-		this.trigger = trigger;
-		this.type = trigger.dataset.contentType;
-		this.name = trigger.dataset.contentName;
+	constructor(id) {
+		this.height = 1;
+		this.id = id;
 	}
 
-	beforeRequest() {
-		switch (this.type) {
-		case 'gallery':
-			if (!('Zepto' in window || 'jQuery' in window)) {
-				injectJS(WP.THEME_URI + '/js/dist/slick.build.js');
+	createOptions() {
+		var h = Math.round((App.instance.vh - App.instance.FIXED_HEADER_HEIGHT) * this.height);
+		return {
+			content: '<div id="' + this.id + '-modal" class="modal"></div>',
+			closeButton: false,
+			width: document.documentElement.clientWidth,
+			closeClass: '',
+			closeHtml: '<button class="no-text single-background clean-button close-button">Close</button>',
+			overlayStyles: {
+				opacity: '0.8',
+				backgroundColor: 'white'
+			},
+			modalStyles: {
+				height: h + 'px',
+				top: (App.instance.FIXED_HEADER_HEIGHT + Math.round((App.instance.vh - App.instance.FIXED_HEADER_HEIGHT - h) / 2)) + 'px'
+			},
+			closeStyles: {
 			}
-			break;
-		}
+		};
+	}
+
+	appendToModalContainer() {
+		App.instance.overlayContainer.appendChild(this.m.overlayElem());
+		App.instance.overlayContainer.appendChild(this.m.modalElem());
+	}
+
+	closeButtonClassFix() {
+		this.m.closeElem().classList.remove('pico-close');
+		this.m.closeElem().classList.add('modal-close');
+	}
+
+	afterCreate(m, e) {
+		this.appendToModalContainer();
+		this.contentElement = document.getElementById(this.id + '-modal');
+		if (this.options.closeButton) this.closeButtonClassFix();
+	}
+
+	showOverlay() {
+		this.m.overlayElem().classList.add('visible');
+	}
+
+	beforeShowContent() {
+		App.instance.hideScrollBar();
+		App.instance.modals.removePrevious();
 	}
 
 	showContent() {
-			setTimeout(() => {
-				if ('modal' in this) this.modal.modalElem().classList.add('visible');
-			}, 16);
+		this.m.modalElem().classList.add('visible');
 	}
 
-	afterShow() {
-		switch (this.type) {
-		case 'gallery':
-			if ('gallery' in this) this.gallery.onFirstImageLoad(this.showContent.bind(this));
-			break;
-		default:
-			this.showContent();
-		}
+	afterShow(m, e) {
+		[16, this.showOverlay, 300, this.beforeShowContent, this.showContent].sequence(this);
 	}
 
-	afterRequest() {
-		switch (this.type) {
-		case 'gallery':
-			this.gallery = new Gallery(this.modalContainer.firstChild);
-			this.gallery.init();
-			break;
-		case 'page':
-			App.instance.initFancyInputs(this.modalContainer);
-			break;
-		}
-		this.afterShow();
+	hide(e) {
+		e.preventDefault();
+		this.m.overlayElem().addEventListener('transitionend', this.afterClose.bind(this).once());
+		this.m.modalElem().classList.remove('visible');
+		this.m.overlayElem().classList.remove('visible');
 	}
 
-	contentRequest() {
-		nanoajax.ajax({
+	beforeClose(m, e) {
+		this.hide(e);
+	}
+
+	afterClose() {
+		this.m.forceClose();
+	}
+
+	init() {
+		this.options = this.createOptions();
+		this.m = picoModal(this.options);
+		this.m.afterCreate(this.afterCreate.bind(this));
+		this.m.afterShow(this.afterShow.bind(this));
+		this.m.beforeClose(this.beforeClose.bind(this));
+	}
+
+}
+
+class AjaxModal extends Modal {
+
+	constructor(id) {
+		super(id);
+		var parts = id.split('--');
+		this.type = parts[0];
+		this.name = parts[1];
+	}
+
+	requestParams() {
+		return {
 			url: WP.AJAX_URL,
 			method: 'POST',
 			body: {
@@ -131,41 +147,26 @@ class AjaxModal {
 				what: this.type,
 				who: this.name
 			}.serialize()
-		}, this.requestCallback.bind(this));
+		};
 	}
 
-	requestCallback(code, data) {
-		var res = JSON.parse(data);
-		if (res && res.success) {
-			this.modalContainer = document.getElementById(this.name + '-modal');
-			this.modalContainer.innerHTML = res.data;
-			setTimeout(this.afterRequest.bind(this), 16);
-		}
-		else {
-			console.error(res ? res.data : "Invalid response");
-		}
-	}
-
-	showModal() {
-		App.instance.modals.modal(this.name, {
-			afterCreate: m => {
-				this.modal = m;
-				this.beforeRequest();
-				this.contentRequest();
-			},
-			afterShow: m => {
-				this.afterShow();
-			}
-		}, {
-			contentHeight: 0.6
+	requestPromise() {
+		var params = this.requestParams();
+		return new Promise(function(resolve, reject) {
+			nanoajax.ajax(params, function(code, data) {
+				var res = JSON.parse(data);
+				(res && res.success) ? resolve(res.data) : reject(res ? res.data : "Invalid response");
+			});
 		});
 	}
 
-	init() {
-		this.trigger.addEventListener('click', e => {
-			e.preventDefault();
-			this.showModal();
-		});
+	afterShow(m, e) {
+		var show = Modal.prototype.afterShow.curry(m, e).bind(this);
+		this.m.modalElem().parentNode.setAttribute('data-modal-type', this.type);
+		this.requestPromise().then(function(html) {
+			this.contentElement.innerHTML = html;
+			setTimeout(show, 16);
+		}.bind(this));
 	}
 
 }

@@ -1,3 +1,12 @@
+Object.defineProperty(HTMLElement.prototype, 'dimensions', {
+	value: function() {
+		return {
+			width: this.offsetWidth,
+			height: this.offsetHeight
+		};
+	}
+});
+
 Object.defineProperty(HTMLElement.prototype, 'positionTop', {
 	get: function() {
 		var op = this.offsetParent, top = 0;

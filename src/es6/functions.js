@@ -73,23 +73,27 @@ Object.defineProperty(Function.prototype, 'once', {
 	}
 });
 
-Object.defineProperty(Function.prototype, 'delay', {
-	value: function(wait) {
-		var func = this;
-		return function(...args) {
-			return setTimeout(function() {
-				func.apply(this, args);
-			}, wait);
+/**
+ * Calls function in a sequence, with delays, and same context.
+ *
+ * E.g. [16, foo, bar, 200, baz].sequence(this);
+ */
+Object.defineProperty(Array.prototype, 'sequence', {
+	value: function(thisArg) {
+		var params = this, i = 0, l = this.length;
+		var call = function call() {
+			if (i >= l) return;
+			if (typeof(params[i]) === 'number') {
+				setTimeout(call, params[i]);
+				i++;
+			}
+			else {
+				params[i].call(thisArg);
+				i++;
+				return call();
+			}
 		};
-	}
-});
-
-Object.defineProperty(Function.prototype, 'delayedCall', {
-	value: function(wait, ...args) {
-		var func = this;
-		return setTimeout(function() {
-			func.apply(this, args);
-		}, wait);
+		return call();
 	}
 });
 
