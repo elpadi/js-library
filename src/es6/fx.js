@@ -28,3 +28,36 @@ var FX = (function() {
 	};
 
 })();
+
+/**
+ * Gradually update a generic value.
+ */
+class LiveAnimation {
+
+	constructor(initialValue, delta) {
+		this.value = initialValue;
+		this.target = initialValue;
+		this.delta = delta || 0.001;
+	}
+
+	updateTarget(value) {
+		if (value !== this.target) {
+			this.target = Math.round(value);
+			this.animate();
+		}
+	}
+
+	animate() {
+		if (Math.abs(this.target - this.value) >= 10) {
+			this.value = this.value + ((this.target - this.value) * this.delta);
+			this.onValueChange(this.value);
+			window.requestAnimationFrame(this.animate.bind(this));
+		}
+	}
+
+	onValueChange(value) {
+		throw "This method must be overridden.";
+	}
+
+}
+
